@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.58.2-jammy
 
 # Install x11vnc for remote browser access during setup
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y x11vnc && rm -rf /var/lib/apt/lists/*
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y x11vnc && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
