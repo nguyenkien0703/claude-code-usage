@@ -1,0 +1,29 @@
+{
+  "lastUpdated": "2026-02-26T07:41:13.670Z",
+  "accounts": [
+    {
+      "session": {
+        "percent": 51,
+        "resetIn": null,
+        "label": "Current Session"
+      },
+      "weekly": {
+        "percent": 73,
+        "resetOn": null,
+        "label": "Weekly Limit"
+      },
+      "extra": {
+        "spent": "$51.15",
+        "limit": "$50",
+        "balance": null,
+        "resetDate": null,
+        "label": "Extra Usage"
+      },
+      "accountIndex": 1,
+      "accountName": "blockchaindev@savameta.com",
+      "status": "ok",
+      "lastUpdated": "2026-02-26T07:41:13.582Z",
+      "rawText": "New chat\nSearch\nCustomize\nChats\nProjects\nArtifacts\nCode\nRecents\nHide\nTạo chanel slack\nBD\nBlockchain Dev\nPro plan\nSettings\nGeneral\nAccount\nPrivacy\nBilling\nUsage\nCapabilities\nConnectors\nClaude Code\nPlan usage limits\n\nCurrent session\n\nResets in 4 hr 18 min\n\n51% used\n\nWeekly limits\n\nLearn more about usage limits\n\nAll models\n\nResets Mon 12:00 PM\n\n73% used\n\nLast updated: just now\n\nExtra usage\n\nTurn on extra usage to keep using Claude if you hit a limit. Learn more\n\n$51.15 spent\n\nResets Mar 1\n\n102% used\n\n$50\n\nMonthly spend limit\n\nAdjust limit\n\n-$1.02\n\nCurrent balance·Auto-reload off\n\nBuy more"
+    }
+  ]
+}
