@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Usage Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:   #0d1117;
+      --bg-card:      #161b22;
+      --bg-card-hover:#1c2129;
+      --border:       #30363d;
+      --text-primary: #e6edf3;
+      --text-muted:   #8b949e;
+      --text-dim:     #6e7681;
+      --accent:       #d97757;
+      --accent-dim:   #b85d3d;
+      --green:        #3fb950;
+      --yellow:       #d29922;
+      --red:          #f85149;
+      --blue:         #58a6ff;
+      --purple:       #bc8cff;
+      --bar-bg:       #21262d;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      min-height: 100vh;
+      padding: 24px 20px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -.3px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .last-updated {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .next-refresh {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+    }
+
+    .next-refresh span { color: var(--blue); font-variant-numeric: tabular-nums; }
+
+    .btn-refresh {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+
+    .btn-refresh:hover { background: var(--accent-dim); }
+    .btn-refresh:active { transform: scale(.97); }
+    .btn-refresh:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin .8s linear infinite; }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 18px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      transition: border-color .2s, background .2s;
+    }
+
+    .card:hover { background: var(--bg-card-hover); border-color: #444c56; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .account-info { display: flex; align-items: center; gap: 10px; }
+
+    .account-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff;
+      flex-shrink: 0;
+    }
+
+    .account-name { font-weight: 600; font-size: 15px; }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .status-ok      { background: rgba(63,185,80,.15); color: var(--green); }
+    .status-error   { background: rgba(248,81,73,.15);  color: var(--red); }
+    .status-loading { background: rgba(88,166,255,.15); color: var(--blue); }
+    .status-no_session { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .status-session_expired { background: rgba(248,81,73,.15); color: var(--red); }
+
+    /* ── Usage rows ── */
+    .usage-row { margin-bottom: 16px; }
+    .usage-row:last-child { margin-bottom: 0; }
+
+    .usage-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      font-size: 12px;
+    }
+
+    .usage-label-text {
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    .usage-pct {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    /* progress bar */
+    .bar-track {
+      height: 7px;
+      border-radius: 99px;
+      background: var(--bar-bg);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .6s ease;
+    }
+
+    .bar-fill.green  { background: var(--green); }
+    .bar-fill.yellow { background: var(--yellow); }
+    .bar-fill.red    { background: var(--red); }
+    .bar-fill.purple { background: var(--purple); }
+
+    .usage-meta {
+      margin-top: 5px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* extra usage */
+    .extra-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .extra-item {
+      background: var(--bar-bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .extra-item-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 4px;
+    }
+
+    .extra-item-value {
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .extra-item-value.spent  { color: var(--red); }
+    .extra-item-value.limit  { color: var(--text-muted); }
+    .extra-item-value.balance{ color: var(--green); }
+
+    /* error / no-session state */
+    .card-error {
+      background: rgba(248,81,73,.06);
+      border: 1px solid rgba(248,81,73,.25);
+      border-radius: 9px;
+      padding: 14px;
+      font-size: 13px;
+      color: var(--red);
+      margin-top: 6px;
+    }
+
+    .card-error code {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bar-bg);
+      padding: 6px 9px;
+      border-radius: 5px;
+    }
+
+    /* skeleton loader */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position:  600px 0; }
+    }
+    .skeleton {
+      border-radius: 5px;
+      background: linear-gradient(90deg, var(--bar-bg) 25%, #2a3040 50%, var(--bar-bg) 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s infinite linear;
+    }
+    .skeleton-text  { height: 13px; margin-bottom: 8px; }
+    .skeleton-bar   { height: 7px;  border-radius: 99px; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <div>
+      <h1>Claude Usage Dashboard</h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="last-updated" id="lastUpdated">Loading…</div>
+    <div class="next-refresh">Next refresh in <span id="countdown">—</span></div>
+    <button class="btn-refresh" id="btnRefresh" onclick="triggerRefresh()">Refresh Now</button>
+  </div>
+</header>
+
+<div class="grid" id="grid">
+  <!-- cards injected by JS -->
+</div>
+
+<footer>Auto-refreshes every 10 minutes &nbsp;·&nbsp; Data from claude.ai/settings/usage</footer>
+
+<script>
+  let nextRefreshISO = null;
+  let countdownInterval = null;
+  let pollInterval = null;
+
+  // ── Colour logic ──────────────────────────────────────────────
+  function barColour(pct) {
+    if (pct === null || pct === undefined) return 'purple';
+    if (pct >= 90) return 'red';
+    if (pct >= 70) return 'yellow';
+    return 'green';
+  }
+
+  function statusLabel(status) {
+    const map = {
+      ok:              ['ok',              'Online'],
+      error:           ['error',           'Error'],
+      loading:         ['loading',         'Loading'],
+      no_session:      ['no_session',      'No Session'],
+      session_expired: ['session_expired', 'Expired'],
+    };
+    return map[status] || ['error', status || 'Unknown'];
+  }
+
+  // ── Build card HTML ───────────────────────────────────────────
+  function buildCard(acc) {
+    const [statusKey, statusText] = statusLabel(acc.status);
+    const initials = acc.accountName
+      ? acc.accountName.split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase()
+      : `A${acc.accountIndex}`;
+
+    let body = '';
+
+    if (acc.status === 'ok') {
+      body = buildOkBody(acc);
+    } else {
+      const msg = acc.error || 'Unknown error';
+      const hint = acc.status === 'no_session'
+        ? `<code>node setup.js ${acc.accountIndex}</code>`
+        : acc.status === 'session_expired'
+          ? `<code>node setup.js ${acc.accountIndex}</code>`
+          : '';
+      body = `<div class="card-error">${msg}${hint}</div>`;
+    }
+
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div class="account-info">
+            <div class="account-avatar">${initials}</div>
+            <div>
+              <div class="account-name">${esc(acc.accountName || `Account ${acc.accountIndex}`)}</div>
+            </div>
+          </div>
+          <span class="status-badge status-${statusKey}">${statusText}</span>
+        </div>
+        ${body}
+      </div>`;
+  }
+
+  function buildOkBody(acc) {
+    const s = acc.session  || {};
+    const w = acc.weekly   || {};
+    const e = acc.extra    || {};
+
+    const sPct  = s.percent != null ? s.percent : null;
+    const wPct  = w.percent != null ? w.percent : null;
+
+    function progressRow(label, pct, meta, colourOverride) {
+      const colour = colourOverride || barColour(pct);
+      const pctText = pct != null ? `${Math.round(pct)}%` : '—';
+      const width   = pct != null ? Math.min(pct, 100) : 0;
+      return `
+        <div class="usage-row">
+          <div class="usage-label">
+            <span class="usage-label-text">${label}</span>
+            <span class="usage-pct" style="color:var(--${colour})">${pctText}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill ${colour}" style="width:${width}%"></div>
+          </div>
+          ${meta ? `<div class="usage-meta">${meta}</div>` : ''}
+        </div>`;
+    }
+
+    const sessionMeta = s.resetIn ? `Resets ${esc(s.resetIn)}` : '';
+    const weeklyMeta  = w.resetOn ? `Resets ${esc(w.resetOn)}` : '';
+
+    const sessionRow = progressRow('Current Session', sPct, sessionMeta);
+    const weeklyRow  = progressRow('Weekly Limit',    wPct, weeklyMeta);
+
+    // Extra usage
+    const extraRow = `
+      <div class="usage-row">
+        <div class="usage-label">
+          <span class="usage-label-text">Extra Usage</span>
+        </div>
+        <div class="extra-grid">
+          <div class="extra-item">
+            <div class="extra-item-label">Spent</div>
+            <div class="extra-item-value spent">${esc(e.spent || '—')}</div>
+          </div>
+          <div class="extra-item">
+            <div class="extra-item-label">Monthly Limit</div>
+            <div class="extra-item-value limit">${esc(e.limit || '—')}</div>
+          </div>
+          <div class="extra-item">
+            <div class="extra-item-label">Balance</div>
+            <div class="extra-item-value balance">${esc(e.balance || '—')}</div>
+          </div>
+          <div class="extra-item">
+            <div class="extra-item-label">Reset Date</div>
+            <div class="extra-item-value limit" style="font-size:13px">${esc(e.resetDate || '—')}</div>
+          </div>
+        </div>
+      </div>`;
+
+    return sessionRow + weeklyRow + extraRow;
+  }
+
+  function buildSkeletonCard(i) {
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div class="account-info">
+            <div class="account-avatar">A${i}</div>
+            <div>
+              <div class="account-name" style="color:var(--text-dim)">Account ${i}</div>
+            </div>
+          </div>
+          <span class="status-badge status-loading">Loading</span>
+        </div>
+        <div class="usage-row">
+          <div class="skeleton skeleton-text" style="width:40%"></div>
+          <div class="skeleton skeleton-bar"></div>
+        </div>
+        <div class="usage-row">
+          <div class="skeleton skeleton-text" style="width:35%"></div>
+          <div class="skeleton skeleton-bar"></div>
+        </div>
+        <div class="usage-row">
+          <div class="skeleton skeleton-text" style="width:30%"></div>
+          <div class="skeleton skeleton-bar"></div>
+        </div>
+      </div>`;
+  }
+
+  // ── Render ────────────────────────────────────────────────────
+  function renderData(data) {
+    const grid = document.getElementById('grid');
+
+    if (!data || !data.accounts || data.accounts.length === 0) {
+      grid.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0">No data yet. Scraping in progress…</p>';
+      return;
+    }
+
+    grid.innerHTML = data.accounts
+      .sort((a, b) => a.accountIndex - b.accountIndex)
+      .map(buildCard)
+      .join('');
+
+    if (data.lastUpdated) {
+      document.getElementById('lastUpdated').textContent =
+        'Updated ' + new Date(data.lastUpdated).toLocaleTimeString();
+    }
+  }
+
+  function renderSkeletons(count) {
+    const grid = document.getElementById('grid');
+    let html = '';
+    for (let i = 1; i <= count; i++) html += buildSkeletonCard(i);
+    grid.innerHTML = html;
+  }
+
+  // ── Countdown ────────────────────────────────────────────────
+  function startCountdown(isoTime) {
+    nextRefreshISO = isoTime;
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    function tick() {
+      if (!nextRefreshISO) { document.getElementById('countdown').textContent = '—'; return; }
+      const diff = new Date(nextRefreshISO) - Date.now();
+      if (diff <= 0) {
+        document.getElementById('countdown').textContent = '…';
+        return;
+      }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      document.getElementById('countdown').textContent =
+        `${m}:${String(s).padStart(2,'0')}`;
+    }
+
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+  }
+
+  // ── Fetch & refresh ──────────────────────────────────────────
+  async function fetchUsage(showSkeleton = false) {
+    if (showSkeleton) renderSkeletons(4);
+    try {
+      const res = await fetch('/api/usage');
+      const data = await res.json();
+      renderData(data);
+      if (data.nextRefresh) startCountdown(data.nextRefresh);
+      if (data.isScraping) {
+        // Poll until done
+        setTimeout(fetchUsage, 3000);
+      }
+    } catch (err) {
+      document.getElementById('lastUpdated').textContent = 'Fetch error – retrying…';
+      setTimeout(fetchUsage, 5000);
+    }
+  }
+
+  async function triggerRefresh() {
+    const btn = document.getElementById('btnRefresh');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin">↻</span> Refreshing…';
+
+    try {
+      await fetch('/api/refresh');
+      // Poll for result
+      await pollUntilDone();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Refresh Now';
+    }
+  }
+
+  async function pollUntilDone() {
+    while (true) {
+      const res = await fetch('/api/status');
+      const status = await res.json();
+      if (!status.isScraping) {
+        await fetchUsage();
+        break;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  // ── Auto-poll every 10 min ───────────────────────────────────
+  function scheduleAutoFetch() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(() => fetchUsage(), 10 * 60 * 1000);
+  }
+
+  // ── Escape HTML ──────────────────────────────────────────────
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────
+  renderSkeletons(4);
+  fetchUsage();
+  scheduleAutoFetch();
+</script>
+</body>
+</html>

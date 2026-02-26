@@ -1,0 +1,24 @@
+services:
+  app:
+    build: .
+    container_name: claude-dashboard
+    restart: unless-stopped
+    volumes:
+      - ./sessions:/app/sessions
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: claude-dashboard-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro          # put your certs here (optional)
+    depends_on:
+      - app
