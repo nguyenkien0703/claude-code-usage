@@ -28,6 +28,6 @@ docker compose run --rm \
   app bash -c "
     Xvfb :99 -screen 0 1280x800x24 -ac &
     sleep 1
-    x11vnc -display :99 -forever -nopw -quiet &
+    x11vnc -display :99 -forever -passwd vnc1234 -quiet &
     node setup.js $ACCOUNT
   "
