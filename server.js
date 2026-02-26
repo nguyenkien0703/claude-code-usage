@@ -64,16 +64,13 @@ async function runScrape() {
 }
 
 function updateNextRefreshTime() {
-  // Next refresh is at next 10-minute mark
-  const now = new Date();
-  const minutesUntilNext = 10 - (now.getMinutes() % 10);
-  const next = new Date(now.getTime() + minutesUntilNext * 60 * 1000);
+  const next = new Date(Date.now() + 60 * 1000);
   next.setSeconds(0, 0);
   nextRefreshTime = next.toISOString();
 }
 
-// Schedule every 10 minutes
-cron.schedule('*/10 * * * *', () => {
+// Schedule every 1 minute
+cron.schedule('* * * * *', () => {
   updateNextRefreshTime();
   runScrape();
 });

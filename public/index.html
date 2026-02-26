@@ -304,7 +304,7 @@
   <!-- cards injected by JS -->
 </div>
 
-<footer>Auto-refreshes every 10 minutes &nbsp;·&nbsp; Data from claude.ai/settings/usage</footer>
+<footer>Auto-refreshes every 1 minute &nbsp;·&nbsp; Data from claude.ai/settings/usage</footer>
 
 <script>
   let nextRefreshISO = null;
@@ -550,7 +550,7 @@
   // ── Auto-poll every 10 min ───────────────────────────────────
   function scheduleAutoFetch() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(() => fetchUsage(), 10 * 60 * 1000);
+    pollInterval = setInterval(() => fetchUsage(), 60 * 1000);
   }
 
   // ── Escape HTML ──────────────────────────────────────────────
