@@ -1,2 +1,5 @@
-2026/02/26-14:44:54.417 6dc98 Creating DB /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-2/Default/Local Storage/leveldb since it was missing.
-2026/02/26-14:44:54.424 6dc98 Reusing MANIFEST /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-2/Default/Local Storage/leveldb/MANIFEST-000001
+2026/02/26-15:10:14.027 7af58 Reusing MANIFEST /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-2/Default/Local Storage/leveldb/MANIFEST-000001
+2026/02/26-15:10:14.030 7af58 Recovering log #3
+2026/02/26-15:10:14.032 7af58 Level-0 table #3: started
+2026/02/26-15:10:14.037 7af58 Level-0 table #3: 327795 bytes OK
+2026/02/26-15:10:14.039 7af58 Delete type=0 #3

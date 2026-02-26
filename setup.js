@@ -60,6 +60,12 @@ async function setup() {
 
   if (currentUrl.includes('claude.ai') && !currentUrl.includes('/login')) {
     console.log(`\n✓ Login successful for ${accountName}!`);
+
+    // Export cookies to JSON (portable across platforms / Docker)
+    const cookies = await browser.cookies();
+    const cookiesFile = path.join(sessionDir, 'cookies.json');
+    fs.writeFileSync(cookiesFile, JSON.stringify(cookies, null, 2));
+    console.log(`✓ Cookies exported to: ${cookiesFile}`);
     console.log(`✓ Session saved to: ${sessionDir}`);
   } else {
     console.log('\n⚠ Warning: URL still shows login page. Please verify login was successful.');

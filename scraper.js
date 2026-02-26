@@ -11,29 +11,36 @@ function getSessionDir(accountIndex) {
 
 async function scrapeAccount(accountIndex, accountName) {
   const sessionDir = getSessionDir(accountIndex);
+  const cookiesFile = path.join(sessionDir, 'cookies.json');
 
-  if (!fs.existsSync(sessionDir)) {
-    console.log(`  [Account ${accountIndex}] No session found. Run: node setup.js ${accountIndex}`);
+  if (!fs.existsSync(cookiesFile)) {
+    const msg = fs.existsSync(sessionDir)
+      ? `Session exists but no cookies.json. Re-run: node setup.js ${accountIndex}`
+      : `No session found. Run: node setup.js ${accountIndex}`;
+    console.log(`  [Account ${accountIndex}] ${msg}`);
     return {
       accountIndex,
       accountName,
       status: 'no_session',
-      error: `No session directory. Run: node setup.js ${accountIndex}`,
+      error: msg,
       lastUpdated: new Date().toISOString(),
     };
   }
 
   let browser = null;
+  let context = null;
   try {
-    browser = await chromium.launchPersistentContext(sessionDir, {
+    // Launch fresh browser and load cookies from JSON (cross-platform portable)
+    browser = await chromium.launch({
       headless: false,
-      args: [
-        '--no-sandbox',
-        '--disable-blink-features=AutomationControlled',
-      ],
+      args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
     });
+    context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 
-    const page = await browser.newPage();
+    const cookies = JSON.parse(fs.readFileSync(cookiesFile, 'utf8'));
+    await context.addCookies(cookies);
+
+    const page = await context.newPage();
 
     console.log(`  [Account ${accountIndex}] Navigating to usage page...`);
     await page.goto('https://claude.ai/settings/usage', {
@@ -41,10 +48,10 @@ async function scrapeAccount(accountIndex, accountName) {
       timeout: 60000,
     });
 
-    // Check if redirected to login
+    // Check if we actually landed on the usage page
     const currentUrl = page.url();
-    if (currentUrl.includes('/login')) {
-      console.log(`  [Account ${accountIndex}] Session expired. Re-run: node setup.js ${accountIndex}`);
+    if (!currentUrl.includes('settings/usage')) {
+      console.log(`  [Account ${accountIndex}] Session expired (redirected to ${currentUrl}). Re-run: node setup.js ${accountIndex}`);
       return {
         accountIndex,
         accountName,
@@ -168,6 +175,12 @@ async function scrapeAccount(accountIndex, accountName) {
       return usageData;
     });
 
+    // Refresh cookies after successful scrape
+    try {
+      const updatedCookies = await context.cookies();
+      fs.writeFileSync(cookiesFile, JSON.stringify(updatedCookies, null, 2));
+    } catch { /* non-critical */ }
+
     // Parse the raw data into structured format
     const parsed = parseUsageData(data, accountName);
     parsed.accountIndex = accountIndex;
@@ -189,9 +202,7 @@ async function scrapeAccount(accountIndex, accountName) {
       lastUpdated: new Date().toISOString(),
     };
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    if (browser) await browser.close();
   }
 }
 

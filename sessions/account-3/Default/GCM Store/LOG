@@ -1,2 +1,3 @@
-2026/02/26-14:45:40.372 6e72c Creating DB /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-3/Default/GCM Store since it was missing.
-2026/02/26-14:45:40.391 6e72c Reusing MANIFEST /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-3/Default/GCM Store/MANIFEST-000001
+2026/02/26-15:10:29.982 7b313 Reusing MANIFEST /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-3/Default/GCM Store/MANIFEST-000001
+2026/02/26-15:10:29.983 7b313 Recovering log #3
+2026/02/26-15:10:29.983 7b313 Reusing old log /Users/macboook/Documents/Defikit/claude-usage-dashboard/sessions/account-3/Default/GCM Store/000003.log 
