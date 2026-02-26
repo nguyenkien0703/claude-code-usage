@@ -391,8 +391,8 @@
         </div>`;
     }
 
-    const sessionMeta = s.resetIn ? `Resets ${esc(s.resetIn)}` : '';
-    const weeklyMeta  = w.resetOn ? `Resets ${esc(w.resetOn)}` : '';
+    const sessionMeta = s.resetIn ? esc(s.resetIn) : '';
+    const weeklyMeta  = w.resetOn ? esc(w.resetOn) : '';
 
     const sessionRow = progressRow('Current Session', sPct, sessionMeta);
     const weeklyRow  = progressRow('Weekly Limit',    wPct, weeklyMeta);
