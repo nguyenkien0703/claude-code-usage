@@ -221,108 +221,41 @@ async function scrapeAccount(accountIndex, accountName) {
 
 function parseUsageData(data, accountName) {
   const result = {
-    session: {
-      percent: null,
-      resetIn: null,
-      label: 'Current Session',
-    },
-    weekly: {
-      percent: null,
-      resetOn: null,
-      label: 'Weekly Limit',
-    },
-    extra: {
-      spent: null,
-      limit: null,
-      balance: null,
-      resetDate: null,
-      label: 'Extra Usage',
-    },
+    session: { percent: null, resetIn: null, label: 'Current Session' },
+    weekly:  { percent: null, resetOn: null, label: 'Weekly Limit' },
+    extra:   { spent: null, limit: null, balance: null, resetDate: null, label: 'Extra Usage' },
   };
 
   if (!data || !data.rawText) return result;
-
   const text = data.rawText;
 
-  // Try to extract session usage
-  const sessionPatterns = [
-    /current\s+session[^%]*?(\d+(?:\.\d+)?)\s*%/i,
-    /session[^%]*?(\d+(?:\.\d+)?)\s*%/i,
-  ];
-  for (const pattern of sessionPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      result.session.percent = parseFloat(match[1]);
-      break;
-    }
-  }
+  // ── Current session % ─────────────────────────────────────────
+  const sessionPct = text.match(/current\s+session[^%]*?(\d+(?:\.\d+)?)\s*%/i);
+  if (sessionPct) result.session.percent = parseFloat(sessionPct[1]);
 
-  // Try to extract weekly usage
-  const weeklyPatterns = [
-    /weekly[^%]*?(\d+(?:\.\d+)?)\s*%/i,
-    /week[^%]*?(\d+(?:\.\d+)?)\s*%/i,
-  ];
-  for (const pattern of weeklyPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      result.weekly.percent = parseFloat(match[1]);
-      break;
-    }
-  }
+  // ── Current session reset: "Resets in 2 hr 42 min" ───────────
+  const sessionReset = text.match(/Resets in ([^\n]+)/i);
+  if (sessionReset) result.session.resetIn = sessionReset[0].trim();
 
-  // Extract percentages from sections
-  if (data.sections) {
-    data.sections.forEach(section => {
-      if (!section.heading) return;
-      const heading = section.heading.toLowerCase();
-      const content = (section.content || '').toLowerCase();
-      const combined = heading + ' ' + content;
+  // ── Weekly limit % ────────────────────────────────────────────
+  // "All models" block on usage page
+  const weeklyPct = text.match(/All models[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i)
+                 || text.match(/weekly[^%]*?(\d+(?:\.\d+)?)\s*%/i);
+  if (weeklyPct) result.weekly.percent = parseFloat(weeklyPct[1]);
 
-      const percentMatch = combined.match(/(\d+(?:\.\d+)?)\s*%/);
-      if (percentMatch) {
-        const pct = parseFloat(percentMatch[1]);
-        if (heading.includes('session') || heading.includes('current')) {
-          result.session.percent = pct;
-        } else if (heading.includes('week')) {
-          result.weekly.percent = pct;
-        }
-      }
+  // ── Weekly reset: "Resets Mon 11:00 PM" ──────────────────────
+  const weeklyReset = text.match(/Resets (Mon|Tue|Wed|Thu|Fri|Sat|Sun)[^\n]*/i);
+  if (weeklyReset) result.weekly.resetOn = weeklyReset[0].trim();
 
-      // Look for reset info
-      const resetMatch = combined.match(/reset[s]?\s+(?:in\s+)?(.+?)(?:\||$)/i);
-      if (resetMatch) {
-        if (heading.includes('session') || heading.includes('current')) {
-          result.session.resetIn = resetMatch[1].trim();
-        } else if (heading.includes('week')) {
-          result.weekly.resetOn = resetMatch[1].trim();
-        }
-      }
-    });
-  }
+  // ── Extra usage dollar amounts ────────────────────────────────
+  const dollars = (text.match(/\$[\d,]+(?:\.\d{1,2})?/g) || []);
+  if (dollars[0]) result.extra.spent = dollars[0];
+  if (dollars[1]) result.extra.limit = dollars[1];
 
-  // Extract dollar amounts for extra usage
-  if (data.dollars && data.dollars.length > 0) {
-    // First dollar amount is likely spent, second might be limit
-    if (data.dollars[0]) {
-      result.extra.spent = data.dollars[0];
-    }
-    if (data.dollars[1]) {
-      result.extra.limit = data.dollars[1];
-    }
-  }
-
-  // Extract reset times
-  if (data.resets && data.resets.length > 0) {
-    result.session.resetIn = data.resets[0] || null;
-    if (data.resets.length > 1) {
-      result.weekly.resetOn = data.resets[1] || null;
-    }
-  }
-
-  // If we have time matches but no resets
-  if (!result.session.resetIn && data.times && data.times.length > 0) {
-    result.session.resetIn = data.times[0];
-  }
+  // Reset date: "Mar 1" near "Reset date"
+  const resetDate = text.match(/([A-Z][a-z]+ \d+)\s*\nReset date/i)
+                 || text.match(/Reset date\s*\n([^\n]+)/i);
+  if (resetDate) result.extra.resetDate = resetDate[1].trim();
 
   return result;
 }
