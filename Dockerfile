@@ -11,6 +11,6 @@ COPY . .
 # Create required directories
 RUN mkdir -p sessions data
 
-EXPOSE 3000
+EXPOSE 4455
 
 CMD ["bash", "start.sh"]
