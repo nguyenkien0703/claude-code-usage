@@ -61,21 +61,34 @@ async function scrapeAccount(accountIndex, accountName) {
       };
     }
 
-    // Wait for usage data to load (SPA fetches data after page load)
-    // Wait until "Loading..." text disappears, meaning React components have data
+    // Wait for React/Next.js to hydrate and settle (may redirect if not authenticated)
+    await page.waitForTimeout(5000);
+
+    // Re-check after React routing settled — homepage means not logged in
+    const finalUrl = page.url();
+    const bodyPreCheck = await page.evaluate(() => document.body.innerText || '');
+    if (!finalUrl.includes('settings/usage') || bodyPreCheck.includes('Continue with Google')) {
+      console.log(`  [Account ${accountIndex}] Session invalid on Linux (cookies from Mac don't transfer). Re-run setup on VPS.`);
+      return {
+        accountIndex,
+        accountName,
+        status: 'session_expired',
+        error: 'Session invalid. Run setup inside Docker on VPS (see README).',
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    // Wait for usage data to fully render
     try {
       await page.waitForFunction(
         () => {
           const body = document.body.innerText;
-          // Check that we have content and "Loading..." is gone
-          return body.length > 500 && !body.includes('Loading...\nLoading...\nLoading...');
+          return body.length > 200 && !body.includes('Loading...\nLoading...\nLoading...');
         },
         { timeout: 20000, polling: 500 }
       );
-    } catch {
-      // fallback
-    }
-    await page.waitForTimeout(2000);
+    } catch { /* fallback */ }
+    await page.waitForTimeout(1000);
 
     const data = await page.evaluate(() => {
       const result = {
