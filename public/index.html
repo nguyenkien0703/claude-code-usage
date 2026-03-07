@@ -351,8 +351,10 @@
       body = `<div class="card-error">${msg}${hint}</div>`;
     }
 
+    const claudeUrl = `https://accounts.google.com/AccountChooser?Email=${encodeURIComponent(acc.accountName)}&continue=${encodeURIComponent('https://claude.ai/settings/usage')}`;
+
     return `
-      <div class="card">
+      <div class="card" onclick="window.open('${claudeUrl}','_blank')" style="cursor:pointer">
         <div class="card-header">
           <div class="account-info">
             <div class="account-avatar">${initials}</div>

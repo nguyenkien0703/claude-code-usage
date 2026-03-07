@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Claude Usage Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .container { width: 100%; max-width: 560px; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+    .card { background: #1e2130; border: 1px solid #2d3148; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+    input { width: 100%; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    input:focus { border-color: #6366f1; }
+    input[type="password"] { letter-spacing: 2px; }
+    .btn { width: 100%; background: #6366f1; color: white; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; margin-top: 16px; }
+    .btn:hover { background: #5457e0; }
+    .btn:disabled { background: #374151; cursor: not-allowed; }
+    .account-card { background: #1e2130; border: 1px solid #2d3148; border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+    .account-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .account-name { font-size: 14px; font-weight: 500; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+    .badge.ok { background: #14532d; color: #4ade80; }
+    .badge.missing { background: #450a0a; color: #f87171; }
+    .key-preview { font-size: 12px; color: #64748b; font-family: monospace; margin-bottom: 12px; }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .save-btn { background: #6366f1; color: white; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .save-btn:hover { background: #5457e0; }
+    .save-btn:disabled { background: #374151; cursor: not-allowed; }
+    .msg { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; }
+    .msg.success { background: #14532d33; color: #4ade80; border: 1px solid #14532d; }
+    .msg.error { background: #450a0a33; color: #f87171; border: 1px solid #7f1d1d; }
+    #login-section { }
+    #admin-section { display: none; }
+    .back-link { color: #64748b; font-size: 13px; text-decoration: none; display: inline-block; margin-bottom: 24px; }
+    .back-link:hover { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to Dashboard</a>
+
+    <!-- Login -->
+    <div id="login-section">
+      <h1>Admin Panel</h1>
+      <p class="subtitle">Enter admin password to manage session keys</p>
+      <div class="card">
+        <label>Admin Password</label>
+        <input type="password" id="password-input" placeholder="Enter password" />
+        <button class="btn" onclick="login()">Login</button>
+        <div id="login-msg"></div>
+      </div>
+    </div>
+
+    <!-- Admin -->
+    <div id="admin-section">
+      <h1>Session Keys</h1>
+      <p class="subtitle">Paste new sessionKey from claude.ai → DevTools → Application → Cookies → sessionKey</p>
+      <div id="accounts-list"></div>
+    </div>
+  </div>
+
+  <script>
+    let adminPassword = '';
+
+    document.getElementById('password-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+
+    async function login() {
+      const pwd = document.getElementById('password-input').value.trim();
+      if (!pwd) return;
+      const res = await fetch('/api/admin/sessions', { headers: { 'x-admin-password': pwd } });
+      if (!res.ok) {
+        document.getElementById('login-msg').innerHTML = '<div class="msg error">Wrong password</div>';
+        return;
+      }
+      adminPassword = pwd;
+      const data = await res.json();
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('admin-section').style.display = 'block';
+      renderAccounts(data);
+    }
+
+    function renderAccounts(data) {
+      const list = document.getElementById('accounts-list');
+      list.innerHTML = '';
+      for (const [idx, account] of Object.entries(data)) {
+        const div = document.createElement('div');
+        div.className = 'account-card';
+        div.id = `account-${idx}`;
+        div.innerHTML = `
+          <div class="account-header">
+            <span class="account-name">${account.name}</span>
+            <span class="badge ${account.hasKey ? 'ok' : 'missing'}">${account.hasKey ? 'KEY SET' : 'NO KEY'}</span>
+          </div>
+          ${account.hasKey ? `<div class="key-preview">Current: ${account.preview}</div>` : ''}
+          <div class="input-row">
+            <input type="text" id="key-${idx}" placeholder="sk-ant-sid01-..." />
+            <button class="save-btn" onclick="saveKey(${idx})">Save</button>
+          </div>
+          <div id="msg-${idx}"></div>
+        `;
+        list.appendChild(div);
+      }
+    }
+
+    async function saveKey(idx) {
+      const input = document.getElementById(`key-${idx}`);
+      const key = input.value.trim();
+      const msgEl = document.getElementById(`msg-${idx}`);
+      if (!key) { msgEl.innerHTML = '<div class="msg error">Please enter a session key</div>'; return; }
+
+      const btn = input.nextElementSibling;
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const res = await fetch('/api/admin/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
+        body: JSON.stringify({ accountIndex: idx, sessionKey: key }),
+      });
+      const data = await res.json();
+
+      btn.disabled = false;
+      btn.textContent = 'Save';
+
+      if (res.ok) {
+        msgEl.innerHTML = '<div class="msg success">✓ Saved! Scraping now to verify...</div>';
+        input.value = '';
+        // Refresh account list after 3s
+        setTimeout(async () => {
+          const r = await fetch('/api/admin/sessions', { headers: { 'x-admin-password': adminPassword } });
+          renderAccounts(await r.json());
+        }, 3000);
+      } else {
+        msgEl.innerHTML = `<div class="msg error">${data.error || 'Failed to save'}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
