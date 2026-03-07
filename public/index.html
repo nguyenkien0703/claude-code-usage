@@ -397,33 +397,7 @@
     const sessionRow = progressRow('Current Session', sPct, sessionMeta);
     const weeklyRow  = progressRow('Weekly Limit',    wPct, weeklyMeta);
 
-    // Extra usage
-    const extraRow = `
-      <div class="usage-row">
-        <div class="usage-label">
-          <span class="usage-label-text">Extra Usage</span>
-        </div>
-        <div class="extra-grid">
-          <div class="extra-item">
-            <div class="extra-item-label">Spent</div>
-            <div class="extra-item-value spent">${esc(e.spent || '—')}</div>
-          </div>
-          <div class="extra-item">
-            <div class="extra-item-label">Monthly Limit</div>
-            <div class="extra-item-value limit">${esc(e.limit || '—')}</div>
-          </div>
-          <div class="extra-item">
-            <div class="extra-item-label">Balance</div>
-            <div class="extra-item-value balance">${esc(e.balance || '—')}</div>
-          </div>
-          <div class="extra-item">
-            <div class="extra-item-label">Reset Date</div>
-            <div class="extra-item-value limit" style="font-size:13px">${esc(e.resetDate || '—')}</div>
-          </div>
-        </div>
-      </div>`;
-
-    return sessionRow + weeklyRow + extraRow;
+    return sessionRow + weeklyRow;
   }
 
   function buildSkeletonCard(i) {

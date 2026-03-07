@@ -185,6 +185,24 @@ async function scrapeAccount(accountIndex, accountName) {
         });
       });
 
+      // Targeted extraction: find each progress bar's context by walking up the DOM
+      const allProgressBars = document.querySelectorAll('[role="progressbar"]');
+      usageData.barsWithContext = Array.from(allProgressBars).map(bar => {
+        const valuenow = bar.getAttribute('aria-valuenow');
+        const valuemax = bar.getAttribute('aria-valuemax') || '100';
+        let container = bar.parentElement;
+        let context = '';
+        for (let i = 0; i < 10 && container; i++) {
+          const t = container.innerText || '';
+          if (t.trim().length > 20) {
+            context = t.trim().substring(0, 500);
+            break;
+          }
+          container = container.parentElement;
+        }
+        return { valuenow, valuemax, context };
+      });
+
       return usageData;
     });
 
@@ -229,19 +247,37 @@ function parseUsageData(data, accountName) {
   if (!data || !data.rawText) return result;
   const text = data.rawText;
 
-  // ── Current session % ─────────────────────────────────────────
-  const sessionPct = text.match(/current\s+session[^%]*?(\d+(?:\.\d+)?)\s*%/i);
-  if (sessionPct) result.session.percent = parseFloat(sessionPct[1]);
+  // ── Try structured progress bar data first (most reliable) ────
+  if (data.barsWithContext && data.barsWithContext.length > 0) {
+    for (const bar of data.barsWithContext) {
+      if (bar.valuenow === null || bar.valuenow === undefined) continue;
+      const pct = parseFloat(bar.valuenow);
+      if (isNaN(pct)) continue;
+      const ctx = bar.context.toLowerCase();
+      if (ctx.includes('current session') && result.session.percent === null) {
+        result.session.percent = pct;
+      } else if ((ctx.includes('all models') || ctx.includes('weekly limit')) && result.weekly.percent === null) {
+        result.weekly.percent = pct;
+      }
+    }
+  }
+
+  // ── Current session % (fallback regex) ────────────────────────
+  if (result.session.percent === null) {
+    const sessionPct = text.match(/current\s+session[^%]*?(\d+(?:\.\d+)?)\s*%/i);
+    if (sessionPct) result.session.percent = parseFloat(sessionPct[1]);
+  }
 
   // ── Current session reset: "Resets in 2 hr 42 min" ───────────
   const sessionReset = text.match(/Resets in ([^\n]+)/i);
   if (sessionReset) result.session.resetIn = sessionReset[0].trim();
 
-  // ── Weekly limit % ────────────────────────────────────────────
-  // "All models" block on usage page
-  const weeklyPct = text.match(/All models[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i)
-                 || text.match(/weekly[^%]*?(\d+(?:\.\d+)?)\s*%/i);
-  if (weeklyPct) result.weekly.percent = parseFloat(weeklyPct[1]);
+  // ── Weekly limit % (fallback regex) ───────────────────────────
+  if (result.weekly.percent === null) {
+    const weeklyPct = text.match(/All models[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i)
+                   || text.match(/weekly[^%]*?(\d+(?:\.\d+)?)\s*%/i);
+    if (weeklyPct) result.weekly.percent = parseFloat(weeklyPct[1]);
+  }
 
   // ── Weekly reset: "Resets Mon 11:00 PM" ──────────────────────
   const weeklyReset = text.match(/Resets (Mon|Tue|Wed|Thu|Fri|Sat|Sun)[^\n]*/i);
