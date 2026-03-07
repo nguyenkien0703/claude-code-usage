@@ -351,10 +351,8 @@
       body = `<div class="card-error">${msg}${hint}</div>`;
     }
 
-    const claudeUrl = `https://accounts.google.com/AccountChooser?Email=${encodeURIComponent(acc.accountName)}&continue=${encodeURIComponent('https://claude.ai/settings/usage')}`;
-
     return `
-      <div class="card" onclick="window.open('${claudeUrl}','_blank')" style="cursor:pointer">
+      <div class="card" onclick="openInProfile('${esc(acc.accountName)}')" style="cursor:pointer">
         <div class="card-header">
           <div class="account-info">
             <div class="account-avatar">${initials}</div>
@@ -394,7 +392,9 @@
     }
 
     const sessionMeta = s.resetIn ? esc(s.resetIn) : '';
-    const weeklyMeta  = w.resetOn ? esc(w.resetOn) : '';
+    const weeklyMeta  = w.resetAt
+      ? 'Resets ' + new Date(w.resetAt).toLocaleDateString('en-US', { weekday: 'short' }) + ' ' + new Date(w.resetAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      : (w.resetOn ? esc(w.resetOn) : '');
 
     const sessionRow = progressRow('Current Session', sPct, sessionMeta);
     const weeklyRow  = progressRow('Weekly Limit',    wPct, weeklyMeta);
@@ -536,6 +536,17 @@
       .replace(/</g,'&lt;')
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;');
+  }
+
+  // ── Open Claude in matching Chrome profile ───────────────────
+  async function openInProfile(email) {
+    try {
+      const res = await fetch(`/api/open?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (!data.success) alert('Không tìm thấy Chrome profile cho: ' + email);
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    }
   }
 
   // ── Init ─────────────────────────────────────────────────────

@@ -2,7 +2,26 @@ require('dotenv').config();
 const express = require('express');
 const cron = require('node-cron');
 const path = require('path');
+const { exec } = require('child_process');
+const fs = require('fs');
 const { scrapeAll, loadCachedData, saveSessionKey, loadSessionKeys } = require('./scraper');
+
+function getChromeProfileForEmail(email) {
+  const chromeBase = `/Users/${require('os').userInfo().username}/Library/Application Support/Google/Chrome`;
+  try {
+    const dirs = fs.readdirSync(chromeBase).filter(d => d === 'Default' || d.startsWith('Profile '));
+    for (const dir of dirs) {
+      try {
+        const prefs = JSON.parse(fs.readFileSync(path.join(chromeBase, dir, 'Preferences'), 'utf8'));
+        const accounts = prefs.account_info || [];
+        if (accounts.some(a => a.email && a.email.toLowerCase() === email.toLowerCase())) {
+          return dir;
+        }
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
 
 const app = express();
 const PORT = process.env.PORT || 4455;
@@ -34,6 +53,21 @@ app.get('/api/refresh', async (req, res) => {
   }
   res.json({ success: true, message: 'Refresh started' });
   runScrape();
+});
+
+// GET /api/open?email=xxx - open Claude in the matching Chrome profile
+app.get('/api/open', (req, res) => {
+  const email = req.query.email;
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  const profile = getChromeProfileForEmail(email);
+  if (!profile) return res.status(404).json({ error: 'No Chrome profile found for this email' });
+
+  const url = 'https://claude.ai/settings/usage';
+  exec(`open -a "Google Chrome" --args --profile-directory="${profile}" "${url}"`, (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, profile });
+  });
 });
 
 // GET /api/status - quick status check
