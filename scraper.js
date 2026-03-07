@@ -110,7 +110,8 @@ async function scrapeAccount(accountIndex, accountName) {
       weekly: {
         label: 'Weekly Limit',
         percent: usage.seven_day?.utilization ?? null,
-        resetOn: formatResetOn(usage.seven_day?.resets_at),\n        resetAt: usage.seven_day?.resets_at || null,
+        resetOn: formatResetOn(usage.seven_day?.resets_at),
+        resetAt: usage.seven_day?.resets_at || null,
       },
       extra: {
         label: 'Extra Usage',
