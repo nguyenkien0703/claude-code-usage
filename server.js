@@ -14,6 +14,10 @@ let nextRefreshTime = null;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // GET /api/usage - return cached data
 app.get('/api/usage', (req, res) => {
   const data = loadCachedData();
